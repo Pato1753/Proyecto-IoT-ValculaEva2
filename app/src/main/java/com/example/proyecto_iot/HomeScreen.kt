@@ -1,90 +1,119 @@
 // Archivo: HomeScreen.kt
 package com.example.proyecto_iot
 
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.PowerSettingsNew
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material.icons.filled.Schedule // Icono para Horarios
+import androidx.compose.material.icons.filled.WaterDrop
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-// 1. Para el error 'Unresolved reference 'CircleShape''
-import androidx.compose.material.icons.filled.History
-// 2. Para el error 'Unresolved reference 'shape''
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material.icons.filled.Notifications // <-- ¡AÑADE ESTA LÍNEA!
-// Esta es la función principal de la pantalla
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     onNavigateToHistorial: () -> Unit,
     onNavigateToNotificaciones: () -> Unit,
-    viewModel: HomeViewModel = viewModel() // 1. Obtenemos la instancia del "Cerebro"
+    onNavigateToHorarios: () -> Unit, // ¡NUEVA RUTA!
+    viewModel: HomeViewModel = viewModel()
 ) {
     val estaAbierta = viewModel.estaAbierta
     val modoAutomatico = viewModel.modoAutomatico
+    // Nuevos datos
+    val humedad = viewModel.humedad
+    val nivelEstanque = viewModel.nivelEstanque
+    val duracion = viewModel.duracionApertura
 
     Scaffold(
-        // 2. La barra superior (como en tu mockup)
         topBar = {
             TopAppBar(
-                title = { Text("Control de Válvula") },
+                title = { Text("Panel de Control") },
                 actions = {
-                    // Botón de Historial (ya lo tenías)
-                    IconButton(onClick = onNavigateToHistorial) {
-                        Icon(
-                            Icons.Default.History,
-                            contentDescription = "Ver Historial"
-                        )
+                    // Botón Horarios (Nuevo)
+                    IconButton(onClick = onNavigateToHorarios) {
+                        Icon(Icons.Default.Schedule, contentDescription = "Horarios")
                     }
-                    // ¡NUEVO! Botón de Notificaciones
+                    IconButton(onClick = onNavigateToHistorial) {
+                        Icon(Icons.Default.History, contentDescription = "Historial")
+                    }
                     IconButton(onClick = onNavigateToNotificaciones) {
-                        Icon(
-                            Icons.Default.Notifications,
-                            contentDescription = "Ver Notificaciones"
-                        )
+                        Icon(Icons.Default.Notifications, contentDescription = "Alertas")
                     }
                 }
             )
         }
     ) { padding ->
-        // 3. Columna principal que centra todo
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(16.dp), // Añadimos padding general
+                .padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.SpaceBetween // Empuja el toggle al fondo
+            verticalArrangement = Arrangement.spacedBy(16.dp) // Espacio entre elementos
         ) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                // 4. El Card de Estado (que cambia de color)
-                EstadoValvulaCard(estaAbierta = estaAbierta)
 
-                Spacer(modifier = Modifier.height(64.dp))
-
-                // 5. El Botón de Power (que se deshabilita)
-                BotonPower(
-                    estaAbierta = estaAbierta,
-                    habilitado = !modoAutomatico, // ¡LÓGICA CLAVE! Habilitado solo en Manual
-                    onClick = { viewModel.toggleValvulaManual() } // Llama a la función del ViewModel
+            // 1. Tarjetas de Información (Humedad y Nivel)
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                InfoCard(
+                    titulo = "Humedad",
+                    valor = "$humedad%",
+                    icono = Icons.Default.WaterDrop,
+                    colorIcono = Color(0xFF2196F3), // Azul
+                    modifier = Modifier.weight(1f)
+                )
+                InfoCard(
+                    titulo = "Estanque",
+                    valor = nivelEstanque,
+                    icono = Icons.Default.WaterDrop, // Puedes cambiarlo si tienes otro
+                    colorIcono = if (nivelEstanque == "Vacío") Color.Red else Color(0xFF4CAF50),
+                    modifier = Modifier.weight(1f)
                 )
             }
 
-            // 6. El Toggle Manual/Automático (al fondo)
+            Divider()
+
+            // 2. Control de Válvula
+            Text("Control de Válvula", style = MaterialTheme.typography.titleMedium)
+
+            EstadoValvulaCard(estaAbierta = estaAbierta)
+
+            // 3. Botón Power
+            BotonPower(
+                estaAbierta = estaAbierta,
+                habilitado = !modoAutomatico,
+                onClick = { viewModel.toggleValvulaManual() }
+            )
+
+            // 4. Configuración de Tiempo (Solo visible en Manual)
+            if (!modoAutomatico) {
+                OutlinedTextField(
+                    value = duracion,
+                    onValueChange = { viewModel.actualizarDuracion(it) },
+                    label = { Text("Duración (segundos)") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    modifier = Modifier.fillMaxWidth(0.6f),
+                    singleLine = true
+                )
+            }
+
+            Spacer(modifier = Modifier.weight(1f)) // Empuja lo siguiente al fondo
+
+            // 5. Toggle Modo
             ModoToggle(
                 esAutomatico = modoAutomatico,
-                onModoChange = { index -> viewModel.setModo(index) } // Llama al ViewModel
+                onModoChange = { index -> viewModel.setModo(index) }
             )
         }
     }
@@ -92,79 +121,55 @@ fun HomeScreen(
 
 // --- Componentes Reutilizables ---
 
-/**
- * El Card que muestra el estado actual (Abierta/Cerrada)
- */
+@Composable
+fun InfoCard(titulo: String, valor: String, icono: androidx.compose.ui.graphics.vector.ImageVector, colorIcono: Color, modifier: Modifier = Modifier) {
+    Card(
+        modifier = modifier,
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Icon(imageVector = icono, contentDescription = null, tint = colorIcono)
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(text = valor, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+            Text(text = titulo, style = MaterialTheme.typography.bodyMedium, color = Color.Gray)
+        }
+    }
+}
+
+// (Mantén aquí las funciones EstadoValvulaCard, BotonPower y ModoToggle
+// tal como las tenías en el código anterior, no cambian)
 @Composable
 fun EstadoValvulaCard(estaAbierta: Boolean) {
     val colorFondo = if (estaAbierta) Color(0xFFE6F4EA) else Color(0xFFFFF0F0)
     val colorTexto = if (estaAbierta) Color(0xFF4CAF50) else Color(0xFFF44336)
     val texto = if (estaAbierta) "Abierta" else "Cerrada"
-    val descripcion = if (estaAbierta) "La válvula está permitiendo el paso de agua." else "La válvula está bloqueando el paso de agua."
+    val descripcion = if (estaAbierta) "Riego activo" else "Riego detenido"
 
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = colorFondo)
-    ) {
+    Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = colorFondo)) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Text(
-                text = "Estado: $texto",
-                color = colorTexto,
-                fontWeight = FontWeight.Bold,
-                fontSize = 18.sp
-            )
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = descripcion,
-                color = Color.DarkGray,
-                fontSize = 14.sp
-            )
+            Text("Estado: $texto", color = colorTexto, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+            Text(descripcion, color = Color.DarkGray, fontSize = 14.sp)
         }
     }
 }
 
-/**
- * El botón circular de Power
- */
 @Composable
 fun BotonPower(estaAbierta: Boolean, habilitado: Boolean, onClick: () -> Unit) {
-    val colorBoton = if (estaAbierta) Color(0xFFF44336) else Color(0xFF4CAF50) // Color de "apagar" o "encender"
-    val textoBoton = if (estaAbierta) "Presiona para cerrar" else "Presiona para abrir"
-
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        // Botón
-        Button(
-            onClick = onClick,
-            enabled = habilitado, // Se deshabilita si 'habilitado' es false
-            modifier = Modifier
-                .size(180.dp), // Tamaño grande
-            shape = CircleShape, // Forma circular
-            colors = ButtonDefaults.buttonColors(
-                containerColor = colorBoton,
-                disabledContainerColor = Color.Gray // Color cuando está deshabilitado
-            )
-        ) {
-            Icon(
-                Icons.Default.PowerSettingsNew,
-                contentDescription = "Power",
-                modifier = Modifier.size(80.dp)
-            )
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Texto descriptivo
-        Text(
-            text = if (habilitado) textoBoton else "Modo Automático Activado",
-            fontSize = 16.sp,
-            color = if (habilitado) Color.Black else Color.Gray
-        )
+    val colorBoton = if (estaAbierta) Color(0xFFF44336) else Color(0xFF4CAF50)
+    Button(
+        onClick = onClick,
+        enabled = habilitado,
+        modifier = Modifier.size(140.dp), // Un poco más pequeño para que quepa todo
+        shape = CircleShape,
+        colors = ButtonDefaults.buttonColors(containerColor = colorBoton, disabledContainerColor = Color.Gray)
+    ) {
+        Icon(Icons.Default.PowerSettingsNew, contentDescription = "Power", modifier = Modifier.size(60.dp))
     }
 }
 
-/**
- * El Toggle de modo Manual/Automático
- */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ModoToggle(esAutomatico: Boolean, onModoChange: (Int) -> Unit) {
@@ -176,16 +181,14 @@ fun ModoToggle(esAutomatico: Boolean, onModoChange: (Int) -> Unit) {
     ) {
         opciones.forEachIndexed { index, label ->
             SegmentedButton(
-                shape = SegmentedButtonDefaults.itemShape(
-                    index = index,
-                    count = opciones.size
-                ),
+                // 1. AQUI ESTÁ LA CORRECCIÓN: Agregamos el parámetro 'shape' obligatorio
+                shape = SegmentedButtonDefaults.itemShape(index = index, count = opciones.size),
+
                 onClick = { onModoChange(index) },
                 selected = (index == selectedIndex)
             ) {
-                Text(text = label)
+                Text(label)
             }
         }
     }
 }
-

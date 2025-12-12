@@ -25,9 +25,8 @@ import java.util.*
 @Composable
 fun NotificacionesScreen(
     onNavigateBack: () -> Unit, // Función para volver atrás
-    viewModel: NotificacionesViewModel = viewModel() // 1. Obtenemos el "Cerebro"
+    viewModel: NotificacionesViewModel = viewModel()
 ) {
-    // 2. Obtenemos la lista y el error
     val notificaciones = viewModel.notificacionesList.value
     val error = viewModel.error.value
 
@@ -44,7 +43,7 @@ fun NotificacionesScreen(
             )
         }
     ) { padding ->
-        // 4. Contenido principal
+        // Contenido principal
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -52,7 +51,7 @@ fun NotificacionesScreen(
                 .padding(16.dp),
             contentAlignment = Alignment.Center
         ) {
-            // 5. Manejo de estados (Error, Vacío, Datos)
+            // Manejo de estados
             if (error != null) {
                 Text(
                     text = "Error: $error",
@@ -62,7 +61,7 @@ fun NotificacionesScreen(
             } else if (notificaciones.isEmpty()) {
                 Text("No hay notificaciones.")
             } else {
-                // 6. La lista de notificaciones
+                // La lista de notificaciones
                 LazyColumn(
                     modifier = Modifier.fillMaxSize()
                 ) {
@@ -76,9 +75,7 @@ fun NotificacionesScreen(
     }
 }
 
-/**
- * UI para UNA SOLA FILA de la lista de notificaciones
- */
+
 @Composable
 fun NotificacionItemRow(entry: NotificacionEntry) {
     Row(
@@ -87,7 +84,7 @@ fun NotificacionItemRow(entry: NotificacionEntry) {
             .padding(vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Icono (basado en el mockup)
+        // Icono
         Icon(
             imageVector = Icons.Default.Notifications, // TODO: Cambiar icono según tipo
             contentDescription = null,
@@ -99,15 +96,15 @@ fun NotificacionItemRow(entry: NotificacionEntry) {
 
         // Columna para el título y la descripción
         Column(
-            modifier = Modifier.weight(1f) // Ocupa el resto del espacio
+            modifier = Modifier.weight(1f)
         ) {
             Text(
-                text = entry.Titulo, // Campo 'titulo'
+                text = entry.titulo,
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Medium
             )
             Text(
-                text = entry.Descripcion, // Campo 'descripcion'
+                text = entry.descripcion,
                 fontSize = 14.sp,
                 color = Color.Gray
             )

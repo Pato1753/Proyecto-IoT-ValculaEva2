@@ -9,15 +9,14 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 
-// 1. Esta es la pantalla de UI.
-//    Recibe como parámetro la acción de "navegar" cuando el login es exitoso
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LoginScreen(
-    onLoginSuccess: () -> Unit, // Función para navegar a la app principal
+    onLoginSuccess: () -> Unit,
     onNavigateToRegister: () -> Unit
 ) {
-    // 2. Obtenemos una instancia del "Cerebro" (ViewModel)
+
     val viewModel: LoginViewModel = viewModel()
 
     Column(
@@ -32,17 +31,17 @@ fun LoginScreen(
 
         Spacer(modifier = Modifier.height(32.dp))
 
-        // 3. Conectamos el TextField al ViewModel
+        // Conectamos el TextField al ViewModel
         TextField(
-            value = viewModel.email, // Lee el estado del ViewModel
-            onValueChange = { viewModel.onEmailChange(it) }, // Avisa al ViewModel del cambio
+            value = viewModel.email,
+            onValueChange = { viewModel.onEmailChange(it) },
             label = { Text("Correo Electrónico") },
             modifier = Modifier.fillMaxWidth()
         )
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // 4. Conectamos el TextField de contraseña al ViewModel
+        // conect el TextField de contraseña al ViewModel
         TextField(
             value = viewModel.password, // Lee el estado del ViewModel
             onValueChange = { viewModel.onPasswordChange(it) }, // Avisa al ViewModel del cambio
@@ -51,7 +50,7 @@ fun LoginScreen(
             modifier = Modifier.fillMaxWidth()
         )
 
-        // 5. Mostramos el error si existe
+        // Mostramos el error si existe
         viewModel.loginError?.let { error ->
             Text(
                 text = error,
@@ -62,10 +61,10 @@ fun LoginScreen(
 
         Spacer(modifier = Modifier.height(32.dp))
 
-        // 6. Conectamos el Botón al ViewModel
+        // Conectamos el Botón al ViewModel
         Button(
             onClick = {
-                // Le dice al "Cerebro" que inicie la lógica de login
+
                 viewModel.onLoginClick(onLoginSuccess = onLoginSuccess)
             },
             enabled = !viewModel.isLoading, // Deshabilita el botón si está cargando
@@ -77,7 +76,6 @@ fun LoginScreen(
                 Text("Iniciar Sesión")
             }
         }
-        // ... (justo después del botón de "Iniciar Sesión")
 
         Spacer(modifier = Modifier.height(16.dp))
 

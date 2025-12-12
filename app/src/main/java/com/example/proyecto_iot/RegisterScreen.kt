@@ -1,4 +1,3 @@
-// Archivo: RegisterScreen.kt
 package com.example.proyecto_iot
 
 import androidx.compose.foundation.layout.*
@@ -16,7 +15,7 @@ fun RegisterScreen(
     onRegisterSuccess: () -> Unit, // Función para navegar
     onLoginClick: () -> Unit // Función para volver al Login
 ) {
-    // 1. Obtenemos una instancia del "Cerebro" de Registro
+
     val viewModel: RegisterViewModel = viewModel()
 
     Column(
@@ -31,7 +30,7 @@ fun RegisterScreen(
 
         Spacer(modifier = Modifier.height(32.dp))
 
-        // 2. Campo de Correo
+        // campo de Correo
         TextField(
             value = viewModel.email,
             onValueChange = { viewModel.onEmailChange(it) },
@@ -40,7 +39,7 @@ fun RegisterScreen(
         )
         Spacer(modifier = Modifier.height(16.dp))
 
-        // 3. Campo de Contraseña
+        // campo de Contraseña
         TextField(
             value = viewModel.password,
             onValueChange = { viewModel.onPasswordChange(it) },
@@ -50,7 +49,7 @@ fun RegisterScreen(
         )
         Spacer(modifier = Modifier.height(16.dp))
 
-        // 4. ¡NUEVO! Campo de Confirmar Contraseña
+        // Confirmar Contraseña
         TextField(
             value = viewModel.confirmPassword,
             onValueChange = { viewModel.onConfirmPasswordChange(it) },
@@ -59,7 +58,7 @@ fun RegisterScreen(
             modifier = Modifier.fillMaxWidth()
         )
 
-        // 5. Mostramos el error si existe
+        // error si existe
         viewModel.registerError?.let { error ->
             Text(
                 text = error,
@@ -70,7 +69,7 @@ fun RegisterScreen(
 
         Spacer(modifier = Modifier.height(32.dp))
 
-        // 6. Botón de Registro
+        // Botón de Registro
         Button(
             onClick = {
                 viewModel.onRegisterClick(onRegisterSuccess = onRegisterSuccess)
@@ -87,7 +86,7 @@ fun RegisterScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // 7. Botón para volver al Login
+        // Botón para volver al Login
         TextButton(onClick = onLoginClick) {
             Text("¿Ya tienes una cuenta? Iniciar sesión")
         }

@@ -1,44 +1,66 @@
-// Archivo: HistorialViewModel.kt
 package com.example.proyecto_iot
 
 import android.util.Log
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
+import com.google.firebase.Timestamp
 import com.google.firebase.firestore.FirebaseFirestore
-import com.google.firebase.firestore.Query // ¡Importante para ordenar!
+import com.google.firebase.firestore.Query
+import java.util.Calendar
+import java.util.Date
 
 class HistorialViewModel : ViewModel() {
 
-    // 1. Referencia a la base de datos
     private val db = FirebaseFirestore.getInstance()
+    private val collectionRef = db.collection("historial_global")
 
-    // 2. Estado que la UI observará
-    //    Esta será la lista de entradas del historial
     val historialList = mutableStateOf<List<HistorialEntry>>(emptyList())
-
-    // 3. Estado para errores
     val error = mutableStateOf<String?>(null)
 
     init {
-        // 4. Conectarnos a Firebase en cuanto se cree el ViewModel
-        db.collection("historial_global")
-            // ¡LÓGICA CLAVE! Ordenar por "timestamp" en orden descendente
+        cargarHistorialInicial()
+    }
+
+    // Carga los últimos 10 registros (Requerimiento 1)
+    fun cargarHistorialInicial() {
+        collectionRef
             .orderBy("timestamp", Query.Direction.DESCENDING)
+            .limit(10) // ¡LÍMITE DE 10!
             .addSnapshotListener { snapshot, e ->
-                // Si hay un error
                 if (e != null) {
-                    Log.w("HistorialViewModel", "Error al escuchar", e)
-                    error.value = "Error al cargar historial: ${e.message}"
+                    error.value = "Error: ${e.message}"
                     return@addSnapshotListener
                 }
-
-                // Si snapshot no es nulo (¡hay datos!)
                 if (snapshot != null) {
-                    // Convertimos los documentos de Firebase
-                    // a una lista de nuestra data class 'HistorialEntry'
                     historialList.value = snapshot.toObjects(HistorialEntry::class.java)
-                    error.value = null
                 }
+            }
+    }
+
+    // Filtrar por fecha específica (Requerimiento 2)
+    fun filtrarPorFecha(anio: Int, mes: Int, dia: Int) {
+        // Crear fecha de inicio (00:00:00)
+        val inicio = Calendar.getInstance().apply {
+            set(anio, mes, dia, 0, 0, 0)
+            set(Calendar.MILLISECOND, 0)
+        }
+
+        // Crear fecha de fin (23:59:59)
+        val fin = Calendar.getInstance().apply {
+            set(anio, mes, dia, 23, 59, 59)
+        }
+
+        // Consultamos a Firebase
+        collectionRef
+            .whereGreaterThanOrEqualTo("timestamp", Timestamp(inicio.time))
+            .whereLessThanOrEqualTo("timestamp", Timestamp(fin.time))
+            .orderBy("timestamp", Query.Direction.DESCENDING)
+            .get() // Usamos get() porque es una búsqueda puntual, no un listener permanente
+            .addOnSuccessListener { snapshot ->
+                historialList.value = snapshot.toObjects(HistorialEntry::class.java)
+            }
+            .addOnFailureListener { e ->
+                error.value = "Error al filtrar: ${e.message}"
             }
     }
 }

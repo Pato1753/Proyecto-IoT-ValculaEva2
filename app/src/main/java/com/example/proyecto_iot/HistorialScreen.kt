@@ -1,11 +1,15 @@
 // Archivo: HistorialScreen.kt
 package com.example.proyecto_iot
 
+import android.app.DatePickerDialog
+import android.widget.DatePicker
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items // ¡Importante para LazyColumn!
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.CalendarToday // Icono Calendario
+import androidx.compose.material.icons.filled.Refresh // Icono Recargar
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -13,38 +17,67 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.google.firebase.Timestamp
-import java.text.SimpleDateFormat // ¡Importante para formatear la fecha!
-import java.util.*
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HistorialScreen(
-    onNavigateBack: () -> Unit, // Función para volver a la pantalla anterior
-    viewModel: HistorialViewModel = viewModel() // 1. Obtenemos el "Cerebro"
+    onNavigateBack: () -> Unit,
+    viewModel: HistorialViewModel = viewModel()
 ) {
-    // 2. Obtenemos la lista y el error del ViewModel
+    // 1. Observamos los datos del ViewModel
     val historial = viewModel.historialList.value
     val error = viewModel.error.value
 
+    // 2. Preparativos para el Calendario (DatePicker)
+    val context = LocalContext.current
+    val calendar = Calendar.getInstance()
+
+    // Esta función abre el selector de fecha nativo de Android
+    fun mostrarCalendario() {
+        DatePickerDialog(
+            context,
+            { _: DatePicker, anio: Int, mes: Int, dia: Int ->
+                // Cuando el usuario selecciona una fecha y da "OK":
+                // Llamamos a la función de filtrado del ViewModel
+                viewModel.filtrarPorFecha(anio, mes, dia)
+            },
+            calendar.get(Calendar.YEAR),
+            calendar.get(Calendar.MONTH),
+            calendar.get(Calendar.DAY_OF_MONTH)
+        ).show()
+    }
+
     Scaffold(
-        // 3. Barra superior con título y botón de "volver"
         topBar = {
             TopAppBar(
-                title = { Text("Historial de Actividad") },
+                title = { Text("Historial (Últimos 10)") },
                 navigationIcon = {
-                    IconButton(onClick = onNavigateBack) { // Llama a la navegación
+                    IconButton(onClick = onNavigateBack) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Volver")
+                    }
+                },
+                actions = {
+                    // Botón para RECARGAR (volver a ver los últimos 10 sin filtros)
+                    IconButton(onClick = { viewModel.cargarHistorialInicial() }) {
+                        Icon(Icons.Default.Refresh, contentDescription = "Recargar")
+                    }
+                    // Botón para FILTRAR (abrir calendario)
+                    IconButton(onClick = { mostrarCalendario() }) {
+                        Icon(Icons.Default.CalendarToday, contentDescription = "Filtrar por Fecha")
                     }
                 }
             )
         }
     ) { padding ->
-        // 4. Contenido principal
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -52,7 +85,7 @@ fun HistorialScreen(
                 .padding(16.dp),
             contentAlignment = Alignment.Center
         ) {
-            // 5. Si hay un error, lo mostramos
+            // Manejo de errores
             if (error != null) {
                 Text(
                     text = "Error: $error",
@@ -60,20 +93,22 @@ fun HistorialScreen(
                     modifier = Modifier.padding(16.dp)
                 )
             }
-            // 6. Si la lista está vacía (y no hay error), mostramos un mensaje
+            // Manejo de lista vacía
             else if (historial.isEmpty()) {
-                Text("Aún no hay actividad registrada.")
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text("No se encontraron registros para esta fecha.")
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Button(onClick = { viewModel.cargarHistorialInicial() }) {
+                        Text("Ver Todos")
+                    }
+                }
             }
-            // 7. Si hay datos, mostramos la lista (¡el LazyColumn!)
+            // Lista de datos
             else {
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize()
-                ) {
-                    // "items" es la función que dibuja la lista
+                LazyColumn(modifier = Modifier.fillMaxSize()) {
                     items(historial) { entrada ->
-                        // Por cada 'entrada' en la lista, dibuja una 'HistorialItemRow'
                         HistorialItemRow(entry = entrada)
-                        Divider() // Una línea divisoria entre cada ítem
+                        Divider()
                     }
                 }
             }
@@ -82,8 +117,7 @@ fun HistorialScreen(
 }
 
 /**
- * Esta es la UI para UNA SOLA FILA de la lista.
- * Se basa en el mockup.
+ * Componente para dibujar una fila del historial
  */
 @Composable
 fun HistorialItemRow(entry: HistorialEntry) {
@@ -93,9 +127,8 @@ fun HistorialItemRow(entry: HistorialEntry) {
             .padding(vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // (Icono - Opcional, pero estaba en tu mockup)
         Icon(
-            imageVector = Icons.Default.Warning, // TODO: Cambiar icono según el tipo
+            imageVector = Icons.Default.Warning,
             contentDescription = null,
             tint = MaterialTheme.colorScheme.primary,
             modifier = Modifier.size(40.dp)
@@ -103,17 +136,14 @@ fun HistorialItemRow(entry: HistorialEntry) {
 
         Spacer(modifier = Modifier.width(16.dp))
 
-        // Columna para la descripción y la hora
-        Column(
-            modifier = Modifier.weight(1f) // Ocupa el resto del espacio
-        ) {
+        Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = entry.descripcion,
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Medium
             )
             Text(
-                text = formatTimestamp(entry.timestamp), // Usamos la función de formato
+                text = formatTimestamp(entry.timestamp),
                 fontSize = 14.sp,
                 color = Color.Gray
             )
@@ -122,14 +152,12 @@ fun HistorialItemRow(entry: HistorialEntry) {
 }
 
 /**
- * Función "ayudante" para convertir el Timestamp de Firebase
- * en un texto legible (ej. "13 Nov, 1:30 AM")
+ * Función para dar formato legible a la fecha
  */
 @Composable
 private fun formatTimestamp(timestamp: Timestamp?): String {
     if (timestamp == null) return "Obteniendo fecha..."
-
-    // Usamos 'remember' para no recalcular esto en cada redibujo
-    val sdf = remember { SimpleDateFormat("dd MMM, h:mm a", Locale.getDefault()) }
+    // Formato con año incluido para que se vea claro el filtro
+    val sdf = remember { SimpleDateFormat("dd MMM yyyy, h:mm a", Locale.getDefault()) }
     return sdf.format(timestamp.toDate())
 }

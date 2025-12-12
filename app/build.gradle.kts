@@ -10,12 +10,12 @@ plugins {
 
 android {
     namespace = "com.example.proyecto_iot"
-    compileSdk = 36 // CORREGIDO: 'release(36)' no era una sintaxis válida.
+    compileSdk = 34 // CORREGIDO: 'release(36)' no era una sintaxis válida.
 
     defaultConfig {
         applicationId = "com.example.proyecto_iot"
         minSdk = 26
-        targetSdk = 36
+        targetSdk = 34
         versionCode = 1
         versionName = "1.0"
 
@@ -81,6 +81,7 @@ dependencies {
     // ¡¡AÑADIDAS!! Las que realmente necesitas para el login y la BD
     implementation("com.google.firebase:firebase-auth")
     implementation("com.google.firebase:firebase-firestore")
+    implementation("com.google.firebase:firebase-database")
 
     // --- LIBRERÍAS ANTIGUAS (ELIMINADAS) ---
     // implementation(libs.androidx.appcompat) // Esto es para XML
@@ -98,4 +99,6 @@ dependencies {
     debugImplementation(libs.androidx.ui.test.manifest)
 
     implementation(libs.androidx.material.icons.extended)
+
+
 }
