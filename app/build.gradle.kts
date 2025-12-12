@@ -10,12 +10,12 @@ plugins {
 
 android {
     namespace = "com.example.proyecto_iot"
-    compileSdk = 34 // CORREGIDO: 'release(36)' no era una sintaxis válida.
+    compileSdk = 36 // CORREGIDO: 'release(36)' no era una sintaxis válida.
 
     defaultConfig {
         applicationId = "com.example.proyecto_iot"
         minSdk = 26
-        targetSdk = 34
+        targetSdk = 36
         versionCode = 1
         versionName = "1.0"
 
