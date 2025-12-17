@@ -1,4 +1,3 @@
-// Archivo: HomeScreen.kt
 package com.example.proyecto_iot
 
 import androidx.compose.foundation.layout.*
@@ -8,8 +7,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.PowerSettingsNew
-import androidx.compose.material.icons.filled.Schedule // Icono para Horarios
+import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.WaterDrop
+import androidx.compose.material.icons.filled.Warning // ¡IMPORTANTE PARA LA ALERTA!
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -26,22 +26,23 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 fun HomeScreen(
     onNavigateToHistorial: () -> Unit,
     onNavigateToNotificaciones: () -> Unit,
-    onNavigateToHorarios: () -> Unit, // ¡NUEVA RUTA!
+    onNavigateToHorarios: () -> Unit,
     viewModel: HomeViewModel = viewModel()
 ) {
     val estaAbierta = viewModel.estaAbierta
     val modoAutomatico = viewModel.modoAutomatico
-    // Nuevos datos
     val humedad = viewModel.humedad
     val nivelEstanque = viewModel.nivelEstanque
     val duracion = viewModel.duracionApertura
+
+    // 1. LEEMOS EL ESTADO DE CONEXIÓN (¡ESTO FALTABA!)
+    val arduinoConectado = viewModel.arduinoConectado
 
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text("Panel de Control") },
                 actions = {
-                    // Botón Horarios (Nuevo)
                     IconButton(onClick = onNavigateToHorarios) {
                         Icon(Icons.Default.Schedule, contentDescription = "Horarios")
                     }
@@ -61,22 +62,42 @@ fun HomeScreen(
                 .padding(padding)
                 .padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(16.dp) // Espacio entre elementos
-        ) {
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) { // <--- ¡AQUÍ ESTABA EL ERROR! Faltaba cerrar el paréntesis y abrir la llave
 
-            // 1. Tarjetas de Información (Humedad y Nivel)
+            // --- 2. ALERTA DE DESCONEXIÓN ---
+            if (!arduinoConectado) {
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFFFFCDD2)), // Rojo claro
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier.padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(Icons.Default.Warning, contentDescription = null, tint = Color.Red)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Column {
+                            Text("Arduino Desconectado", fontWeight = FontWeight.Bold, color = Color.Red)
+                            Text("Funcionando en modo automático local.", fontSize = 12.sp, color = Color.Black)
+                        }
+                    }
+                }
+            }
+
+            // --- Tarjetas de Información ---
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                 InfoCard(
                     titulo = "Humedad",
                     valor = "$humedad%",
                     icono = Icons.Default.WaterDrop,
-                    colorIcono = Color(0xFF2196F3), // Azul
+                    colorIcono = Color(0xFF2196F3),
                     modifier = Modifier.weight(1f)
                 )
                 InfoCard(
                     titulo = "Estanque",
                     valor = nivelEstanque,
-                    icono = Icons.Default.WaterDrop, // Puedes cambiarlo si tienes otro
+                    icono = Icons.Default.WaterDrop,
                     colorIcono = if (nivelEstanque == "Vacío") Color.Red else Color(0xFF4CAF50),
                     modifier = Modifier.weight(1f)
                 )
@@ -84,20 +105,19 @@ fun HomeScreen(
 
             Divider()
 
-            // 2. Control de Válvula
+            // --- Control de Válvula ---
             Text("Control de Válvula", style = MaterialTheme.typography.titleMedium)
 
             EstadoValvulaCard(estaAbierta = estaAbierta)
 
-            // 3. Botón Power
             BotonPower(
                 estaAbierta = estaAbierta,
-                habilitado = !modoAutomatico,
+                habilitado = !modoAutomatico && arduinoConectado, // Se deshabilita si no hay conexión
                 onClick = { viewModel.toggleValvulaManual() }
             )
 
-            // 4. Configuración de Tiempo (Solo visible en Manual)
-            if (!modoAutomatico) {
+            // Configuración de Tiempo
+            if (!modoAutomatico && arduinoConectado) {
                 OutlinedTextField(
                     value = duracion,
                     onValueChange = { viewModel.actualizarDuracion(it) },
@@ -108,9 +128,9 @@ fun HomeScreen(
                 )
             }
 
-            Spacer(modifier = Modifier.weight(1f)) // Empuja lo siguiente al fondo
+            Spacer(modifier = Modifier.weight(1f))
 
-            // 5. Toggle Modo
+            // --- Toggle Modo ---
             ModoToggle(
                 esAutomatico = modoAutomatico,
                 onModoChange = { index -> viewModel.setModo(index) }
@@ -139,8 +159,6 @@ fun InfoCard(titulo: String, valor: String, icono: androidx.compose.ui.graphics.
     }
 }
 
-// (Mantén aquí las funciones EstadoValvulaCard, BotonPower y ModoToggle
-// tal como las tenías en el código anterior, no cambian)
 @Composable
 fun EstadoValvulaCard(estaAbierta: Boolean) {
     val colorFondo = if (estaAbierta) Color(0xFFE6F4EA) else Color(0xFFFFF0F0)
@@ -162,7 +180,7 @@ fun BotonPower(estaAbierta: Boolean, habilitado: Boolean, onClick: () -> Unit) {
     Button(
         onClick = onClick,
         enabled = habilitado,
-        modifier = Modifier.size(140.dp), // Un poco más pequeño para que quepa todo
+        modifier = Modifier.size(140.dp),
         shape = CircleShape,
         colors = ButtonDefaults.buttonColors(containerColor = colorBoton, disabledContainerColor = Color.Gray)
     ) {
@@ -175,20 +193,13 @@ fun BotonPower(estaAbierta: Boolean, habilitado: Boolean, onClick: () -> Unit) {
 fun ModoToggle(esAutomatico: Boolean, onModoChange: (Int) -> Unit) {
     val opciones = listOf("Manual", "Automático")
     val selectedIndex = if (esAutomatico) 1 else 0
-
-    SingleChoiceSegmentedButtonRow(
-        modifier = Modifier.fillMaxWidth()
-    ) {
+    SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
         opciones.forEachIndexed { index, label ->
             SegmentedButton(
-                // 1. AQUI ESTÁ LA CORRECCIÓN: Agregamos el parámetro 'shape' obligatorio
                 shape = SegmentedButtonDefaults.itemShape(index = index, count = opciones.size),
-
                 onClick = { onModoChange(index) },
                 selected = (index == selectedIndex)
-            ) {
-                Text(label)
-            }
+            ) { Text(label) }
         }
     }
 }
